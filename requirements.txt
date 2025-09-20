@@ -1,0 +1,19 @@
+# requirements.txt
+fastapi
+uvicorn[standard]
+transformers[torch]
+accelerate
+python-dotenv
+google-generativeai
+numpy<2.0
+soundfile
+datasets      
+sentencepiece
+nltk  
+pydub
+torchvision
+Pillow
+pydub
+diffusers
+invisible_watermark
+pyopenssl
