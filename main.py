@@ -1,4 +1,4 @@
-# main.py - FINAL VERSION (Affirmation Art Removed)
+# main.py - FINAL, COMPLETE, AND VERIFIED (v2.5 with Better Prompts)
 
 import os
 import time
@@ -13,169 +13,232 @@ from pydantic import BaseModel
 from transformers import pipeline, SpeechT5Processor, SpeechT5ForTextToSpeech, SpeechT5HifiGan, AutoProcessor, MusicgenForConditionalGeneration
 from datasets import load_dataset
 from dotenv import load_dotenv
-import google.generativeai as genai
 import nltk
 from pydub import AudioSegment
+import re
+import requests
+import google.generativeai as genai
 
-# --- START OF THE FFMPEG FIX ---
-AudioSegment.converter = "C:\\ProgramData\\chocolatey\\bin\\ffmpeg.exe"
-AudioSegment.ffprobe = "C:\\ProgramData\\chocolatey\\bin\\ffprobe.exe"
-# --- END OF THE FFMPEG FIX ---
+# --- FFMPEG FIX ---
+if os.name == 'nt':
+    try:
+        ffmpeg_path = "C:\\ProgramData\\chocolatey\\bin\\ffmpeg.exe"
+        if not os.path.exists(ffmpeg_path):
+             print(f"--- WARNING: FFMPEG not found at default path. Audio processing might fail. ---")
+        AudioSegment.converter = ffmpeg_path
+        AudioSegment.ffprobe = "C:\\ProgramData\\chocolatey\\bin\\ffprobe.exe"
+    except Exception as e:
+        print(f"--- FFMPEG setup warning: {e} ---")
 
 # --- NLTK Setup ---
-try: nltk.data.find('tokenizers/punkt')
-except nltk.downloader.DownloadError: print("--- First time setup: Downloading NLTK tokenizer... ---"); nltk.download('punkt')
+try:
+    nltk.data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
 
-print(f"--- [{time.ctime()}] --- Starting Manas AI Backend ---")
+print(f"--- [{time.ctime()}] --- Starting Manas AI Backend (GEMINI-POWERED) ---")
 
 # --- Setup and Configuration ---
-load_dotenv(); app = FastAPI(); device = "cuda" if torch.cuda.is_available() else "cpu"
-GEMINI_MODEL_VERSION = 'gemini-2.5-flash'
+load_dotenv()
+app = FastAPI()
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# --- Gemini Configuration ---
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+gemini_model = None
+if not GEMINI_API_KEY:
+    print("\n" + "="*80 + "\nFATAL ERROR: GEMINI_API_KEY not found in .env file.\n" + "="*80 + "\n")
+else:
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+        print(f"--- [{time.ctime()}] --- Gemini API Key loaded and model configured successfully. ---")
+    except Exception as e:
+        print(f"--- FATAL ERROR configuring Gemini: {e} ---")
+
 print(f"--- [{time.ctime()}] --- FastAPI app instance created. Using device: {device} ---")
 
 # --- CORS Middleware ---
-origins = [ "http://localhost:8000", "https://127.0.0.1:8000", "http://127.0.0.1:8000", "null" ]
+origins = ["*"] 
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-print(f"--- [{time.ctime()}] --- CORS middleware configured. ---")
+print(f"--- [{time.ctime()}] --- CORS middleware configured to allow all origins. ---")
 
-# --- Global variable for speaker embeddings ---
-speaker_embeddings = None
-
-# --- AI Model Loading ---
+# --- AI Model Loading (Local models) ---
+stt_pipeline = None
+tts_processor, tts_model, tts_vocoder, speaker_embeddings = None, None, None, None
+audio_gen_processor, audio_gen_model = None, None
 try:
-    HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
-    print(f"\n--- [{time.ctime()}] --- Loading standard NLP models... ---")
-    intent_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", token=HF_TOKEN, device=device)
-    qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad", token=HF_TOKEN, device=device)
-    print(f"--- [{time.ctime()}] --- Standard NLP models LOADED successfully. ---\n")
-
-    print(f"--- [{time.ctime()}] --- Loading Text-to-Speech (TTS) models... ---")
+    print(f"\n--- [{time.ctime()}] --- Loading local models (Speech, Audio)... ---")
     tts_processor = SpeechT5Processor.from_pretrained("microsoft/speecht5_tts")
     tts_model = SpeechT5ForTextToSpeech.from_pretrained("microsoft/speecht5_tts").to(device)
     tts_vocoder = SpeechT5HifiGan.from_pretrained("microsoft/speecht5_hifigan").to(device)
     try:
-        print("--- Attempting to load preferred speaker embeddings... ---")
         speaker_embeddings = load_dataset("Matthijs/cmu-arctic-xvectors-slt", split="validation")[7306]["xvector"].unsqueeze(0).to(device)
-        print("--- Preferred speaker embeddings loaded successfully. ---")
-    except Exception as e:
-        print(f"--- WARNING: Could not load preferred speaker embeddings: {e}. Falling back to generic. ---")
+    except Exception:
+        print("--- WARNING: Could not load preferred speaker embeddings. Falling back to generic. ---")
         speaker_embeddings = torch.randn((1, 512)).to(device)
     print(f"--- [{time.ctime()}] --- TTS models LOADED successfully. ---\n")
-    
-    print(f"--- [{time.ctime()}] --- Loading Speech-to-Text (STT) model... ---")
-    stt_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-base", device=device)
+    stt_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-base", device=0 if device == 'cuda' else -1)
     print(f"--- [{time.ctime()}] --- STT model LOADED successfully. ---\n")
-    
-    print(f"--- [{time.ctime()}] --- Loading Audio Generation model (MusicGen)... ---")
     audio_gen_processor = AutoProcessor.from_pretrained("facebook/musicgen-small")
     audio_gen_model = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small").to(device)
     print(f"--- [{time.ctime()}] --- Audio Generation model LOADED successfully. ---\n")
-
 except Exception as e:
-    print(f"--- FATAL ERROR loading Hugging Face models: {e} ---")
-    intent_classifier, qa_pipeline, tts_processor, tts_model, tts_vocoder, stt_pipeline, audio_gen_processor, audio_gen_model = [None]*8
-
-try:
-    print(f"--- [{time.ctime()}] --- Configuring Google Gemini model ({GEMINI_MODEL_VERSION})... ---")
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_api_key: print("--- WARNING: GEMINI_API_KEY not found. AI features will fail. ---"); gemini_model = None
-    else: genai.configure(api_key=gemini_api_key); gemini_model = genai.GenerativeModel(GEMINI_MODEL_VERSION); print(f"--- [{time.ctime()}] --- Gemini model configured successfully. ---")
-except Exception as e: print(f"--- FATAL ERROR configuring Gemini: {e} ---"); gemini_model = None
+    print(f"--- FATAL ERROR loading local Hugging Face models: {e} ---")
 
 # --- API Data Models ---
 class TextRequest(BaseModel): text: str
-class MoodRequest(BaseModel): mood: str
-class IntentRequest(BaseModel): text: str; candidate_labels: list[str]
-class QaRequest(BaseModel): context: str; question: str
 class PoemRequest(BaseModel): prompt: str
 class ChatRequest(BaseModel): history: list[dict]
-class MeditationRequest(BaseModel): topic: str; duration: str
 class GoalRequest(BaseModel): goal: str
 class RiddleRequest(BaseModel): question: str
 class SoundscapeRequest(BaseModel): word: str
+class SafeZoneRequest(BaseModel): latitude: float; longitude: float
+class DetoxRequest(BaseModel): name: str; duration: str
+class MeditationRequest(BaseModel): topic: str; duration: str
 
 # --- API Endpoints ---
 @app.post("/api/generate-soundscape")
 async def generate_soundscape(request: SoundscapeRequest):
-    if not gemini_model or not audio_gen_model or not audio_gen_processor: raise HTTPException(status_code=500, detail="A required AI model is not loaded.")
+    if not gemini_model or not audio_gen_model: raise HTTPException(status_code=500, detail="A required AI model is not loaded.")
     try:
-        audio_prompt_generator = f"""A user has provided a single word that represents a feeling: '{request.word}'. Create a short, descriptive prompt for an audio generation AI. The prompt should describe a 5-10 second ambient soundscape that captures the essence of this word. Focus on textures and atmosphere. Example for 'Peace': A serene soundscape of gentle rainfall on large leaves, with distant, soft wind chimes."""
-        audio_prompt_response = gemini_model.generate_content(audio_prompt_generator)
-        audio_prompt = audio_prompt_response.text.strip().replace("\n", " ")
-        print(f"--- Generated Audio Prompt: {audio_prompt} ---")
-
+        prompt_for_prompt = f"""
+        A user wants a soundscape for the word '{request.word}'. 
+        Write a short, vivid, and descriptive prompt for an audio generation AI. 
+        The prompt should describe a soothing, ambient, melodic, and pleasant soundscape. 
+        Focus on calming, gentle, and harmonious sounds. Avoid harsh, sudden, or dissonant noises.
+        For example: "A gentle, calming synth pad with soft, echoing piano notes."
+        """
+        response = gemini_model.generate_content(prompt_for_prompt)
+        audio_prompt = response.text.strip()
+        
         inputs = audio_gen_processor(text=[audio_prompt], padding=True, return_tensors="pt").to(device)
-        audio_values = audio_gen_model.generate(**inputs, max_new_tokens=256)
+        audio_values = audio_gen_model.generate(**inputs, max_new_tokens=768)
         
         sampling_rate = audio_gen_model.config.audio_encoder.sampling_rate
-        audio_numpy = audio_values.cpu().numpy().squeeze()
-        
         buffer = io.BytesIO()
-        sf.write(buffer, audio_numpy, samplerate=sampling_rate, format='WAV')
+        sf.write(buffer, audio_values.cpu().numpy().squeeze(), samplerate=sampling_rate, format='WAV')
         buffer.seek(0)
         return StreamingResponse(buffer, media_type="audio/wav")
-    except Exception as e: print(f"--- Soundscape Generation Error: {e} ---"); raise HTTPException(status_code=500, detail="The cave's echoes are silent right now.")
+    except Exception as e:
+        print(f"--- Soundscape Generation Error: {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-poem")
+async def generate_poem(request: PoemRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        response = gemini_model.generate_content(request.prompt)
+        return {"poem": response.text}
+    except Exception as e:
+        print(f"--- Gemini API Error (Poem): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/chat")
+async def handle_chat(request: ChatRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        valid_history = [msg for msg in request.history if 'parts' in msg and msg['parts']]
+        chat = gemini_model.start_chat(history=valid_history[:-1])
+        response = chat.send_message(valid_history[-1]['parts'][0]['text'])
+        return {"text": response.text}
+    except Exception as e:
+        print(f"--- Gemini API Error (Chat): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/coach-goal")
+async def coach_goal(request: GoalRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        prompt = f'You are Manas, an AI Goal Coach. Turn the user\'s goal: "{request.goal}" into a supportive 3-step S.M.A.R.T. action plan. For each step, provide a clear title and an encouraging explanation. Be motivating.'
+        response = gemini_model.generate_content(prompt)
+        return {"plan": response.text}
+    except Exception as e:
+        print(f"--- Gemini API Error (Goal): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/get-wisdom-riddle")
+async def get_wisdom_riddle(request: RiddleRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        prompt = f'You are a mystical Wisdom Stone. A user asked: "{request.question}". Respond with a short, cryptic, one or two-sentence riddle. Do not use quotation marks.'
+        response = gemini_model.generate_content(prompt)
+        return {"riddle": response.text.strip()}
+    except Exception as e:
+        print(f"--- Gemini API Error (Riddle): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-meditation")
+async def generate_meditation(request: MeditationRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        prompt = f'You are a calm meditation guide. Write a script on "{request.topic}" for a {request.duration} duration, using [PAUSE] markers for pauses. Be soothing and gentle.'
+        response = gemini_model.generate_content(prompt)
+        return {"script": response.text}
+    except Exception as e:
+        print(f"--- Gemini API Error (Meditation): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-detox-pledge")
+async def generate_detox_pledge(request: DetoxRequest):
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        prompt = f"Create a short, empowering pledge for a user named '{request.name}' starting a '{request.duration}' digital detox. Single sentence."
+        response = gemini_model.generate_content(prompt)
+        return {"pledge": response.text.strip().replace('"', '')}
+    except Exception as e:
+        print(f"--- Gemini API Error (Pledge): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/generate-detox-completion")
+async def generate_detox_completion():
+    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not configured.")
+    try:
+        prompt = "Write a short, congratulatory message for a user who completed a digital detox."
+        response = gemini_model.generate_content(prompt)
+        return {"message": response.text.strip().replace('"', '')}
+    except Exception as e:
+        print(f"--- Gemini API Error (Detox Completion): {e} ---")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/safe-zones")
+async def get_safe_zones(request: SafeZoneRequest):
+    overpass_url = "http://overpass-api.de/api/interpreter"
+    radius = 2000 
+    query = f"""[out:json];(nwr["amenity"~"library|park|cafe"](around:{radius},{request.latitude},{request.longitude}););out center;"""
+    try:
+        response = requests.post(overpass_url, data=query, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        places = [{'name': e['tags'].get('name'), 'type': e['tags'].get('amenity', 'place').title(), 'rating': 'N/A', 'vicinity': e['tags'].get('addr:street', 'Location data not available')} for e in data.get('elements', []) if 'name' in e.get('tags', {})]
+        return {"places": places[:5]}
+    except requests.exceptions.RequestException as e:
+        print(f"--- OpenStreetMap API Error: {e} ---")
+        raise HTTPException(status_code=500, detail="Failed to fetch safe zones.")
 
 @app.post("/api/transcribe")
 async def transcribe_audio(audio_file: UploadFile = File(...)):
-    if not stt_pipeline: raise HTTPException(status_code=500, detail="Speech-to-Text model not loaded.")
+    if not stt_pipeline: raise HTTPException(status_code=500, detail="STT model not loaded.")
     try:
         audio_bytes = await audio_file.read(); buffer = io.BytesIO(audio_bytes)
-        audio = AudioSegment.from_file(buffer); audio = audio.set_frame_rate(16000).set_channels(1)
+        audio = AudioSegment.from_file(buffer).set_frame_rate(16000).set_channels(1)
         wav_buffer = io.BytesIO(); audio.export(wav_buffer, format="wav"); wav_buffer.seek(0)
-        wav_bytes = wav_buffer.read(); result = stt_pipeline(wav_bytes); return {"text": result["text"].strip()}
+        result = stt_pipeline(wav_buffer.read()); return {"text": result["text"].strip()}
     except Exception as e: print(f"--- Transcription Error: {e} ---"); raise HTTPException(status_code=500, detail="Failed to transcribe audio.")
+
 @app.post("/api/text-to-speech")
 async def text_to_speech(request: TextRequest):
     if not all([tts_processor, tts_model, tts_vocoder, speaker_embeddings is not None]): raise HTTPException(status_code=500, detail="TTS models not loaded.")
     try:
-        sentences = nltk.sent_tokenize(request.text); chunks = [s for s in sentences if s.strip()]
+        chunks = re.split(r'(?<=[.!?])\s+', request.text); chunks = [s.strip() for s in chunks if s.strip()]
         all_speech = [tts_model.generate_speech(tts_processor(text=c, return_tensors="pt").to(device)["input_ids"], speaker_embeddings, vocoder=tts_vocoder) for c in chunks]
         final_speech = torch.cat(all_speech, dim=0); buffer = io.BytesIO(); sf.write(buffer, final_speech.cpu().numpy(), samplerate=16000, format='WAV'); buffer.seek(0)
         return StreamingResponse(buffer, media_type="audio/wav")
     except Exception as e: print(f"--- TTS PROCESSING ERROR: {e} ---"); raise HTTPException(status_code=500, detail=str(e))
-@app.post("/api/analyze-intent")
-async def analyze_intent(request: IntentRequest):
-    if not intent_classifier: return {"error": "Intent model not loaded."}
-    return intent_classifier(request.text, candidate_labels=request.candidate_labels)
-@app.post("/api/qa")
-async def question_answering(request: QaRequest):
-    if not qa_pipeline: return {"error": "QA model not loaded."}
-    return qa_pipeline(question=request.question, context=request.context)
-@app.post("/api/generate-poem")
-async def generate_poem(request: PoemRequest):
-    if not gemini_model: return {"error": "Gemini model not loaded."}
-    response = gemini_model.generate_content(request.prompt); return {"poem": response.text}
-@app.post("/api/chat")
-async def handle_chat(request: ChatRequest):
-    if not gemini_model: return {"error": "Gemini model not loaded."}
-    chat = gemini_model.start_chat(history=request.history[:-1]); response = chat.send_message(request.history[-1]['parts'][0]['text'])
-    return {"text": response.text}
-@app.post("/api/summarize-chat")
-async def summarize_chat(request: ChatRequest):
-    if not gemini_model: return {"error": "Gemini model not loaded."}
-    conversation_text = "\n".join([f"{msg['role'].replace('model', 'Manas')}: {msg['parts'][0]['text']}" for msg in request.history])
-    prompt = f'You are a reflective wellness companion. Summarize this conversation supportively in the second person ("You expressed..."), identify feelings, highlight advice, and end on a hopeful note. Be concise (3-4 sentences). Conversation:\n---\n{conversation_text}\n---\nSummary:'
-    response = gemini_model.generate_content(prompt); return {"summary": response.text}
-@app.post("/api/generate-meditation")
-async def generate_meditation(request: MeditationRequest):
-    if not gemini_model: return {"error": "Gemini model not loaded."}
-    prompt = f'You are a calm meditation guide. Write a script on "{request.topic}" for a {request.duration} duration. Structure with paragraphs and [PAUSE] markers. Be soothing.'
-    response = gemini_model.generate_content(prompt); return {"script": response.text}
-@app.post("/api/coach-goal")
-async def coach_goal(request: GoalRequest):
-    if not gemini_model: return {"error": "Gemini model not loaded."}
-    prompt = f'You are Manas, an AI Goal Coach. Turn the user\'s goal: "{request.goal}" into a 3-step S.M.A.R.T. action plan. For each step, provide a clear title and encouraging explanation. Be supportive.'
-    response = gemini_model.generate_content(prompt); return {"plan": response.text}
-@app.post("/api/get-wisdom-riddle")
-async def get_wisdom_riddle(request: RiddleRequest):
-    if not gemini_model: raise HTTPException(status_code=500, detail="Gemini model not loaded.")
-    prompt = f"""You are the 'Wisdom Stone of Manas,' an ancient, mystical, and slightly playful oracle. A user has asked you: "{request.question}". Respond not with a direct answer, but with a short, cryptic, one or two-sentence riddle or koan to guide their reflection. Be intriguing. Do not use quotation marks."""
-    response = gemini_model.generate_content(prompt); return {"riddle": response.text.strip()}
 
 # --- Frontend Serving ---
 app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/")
 async def read_index(): return FileResponse('static/index.html')
 
-print(f"\n--- [{time.ctime()}] --- All routes defined. The server is now ready for Uvicorn to start. ---")
+print(f"\n--- [{time.ctime()}] --- Backend is fully loaded and ready. ---")

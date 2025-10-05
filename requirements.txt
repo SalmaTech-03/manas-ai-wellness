@@ -17,3 +17,4 @@ pydub
 diffusers
 invisible_watermark
 pyopenssl
+googlemaps
