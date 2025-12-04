@@ -1,174 +1,129 @@
 
 
-# 🌌 MANAS AI WELLNESS
-### *The Ethereal Bio-Digital Sanctuary*
+# 🌌 MANAS: AI Wellness Sanctuary
+### *Next-Gen Psychotherapeutic AI Companion*
 
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Gemini](https://img.shields.io/badge/AI%20Core-Google%20Gemini%201.5-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![HuggingFace](https://img.shields.io/badge/Models-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/)
 [![PyTorch](https://img.shields.io/badge/Compute-PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![Hugging Face](https://img.shields.io/badge/Models-Hugging%20Face-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/)
-[![Gemini AI](https://img.shields.io/badge/Intelligence-Google%20Gemini%201.5-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
-[![OpenAI Whisper](https://img.shields.io/badge/ASR-Whisper-000000?style=for-the-badge&logo=openai&logoColor=white)](https://github.com/openai/whisper)
-[![JavaScript](https://img.shields.io/badge/Frontend-ES6%2B-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 
-**Manas AI** is not just a wellness app; it is a **Multimodal Neural Ecosystem**. It fuses state-of-the-art Generative AI, Audio Synthesis Transformers, and Geospatial APIs into a unified, glassmorphic interface designed to recalibrate user mental states through bio-digital intervention.
-
-
-</div>
+**MANAS** (Mental health & Artificial Neural Assistance System) is a comprehensive wellness platform capable of multimodal interaction. It fuses **Generative AI** for cognitive therapy, **Transformer-based Audio Synthesis** for ambient soundscapes, and a **Reactive Ethereal UI** to create a holistic digital sanctuary.
 
 ---
 
-## 🧠 System Architecture & Core Intelligence
+## 📦 Technical Architecture Matrix
 
-Manas operates on a decoupled client-server architecture, leveraging a high-performance **FastAPI** backend that orchestrates a pipeline of heavy transformer models.
+Here is the complete breakdown of the technologies powering the Manas Ecosystem.
+
+| **Domain** | **Technology Stack** | **Specific Tools & Models** | **Functionality / Role** |
+| :--- | :--- | :--- | :--- |
+| **🖥️ Frontend** | **Vanilla JS (ES6+)**, **CSS3**, **HTML5** | • **Glassmorphism UI**<br>• **Parallax Engine**<br>• **CSS Variables** | • Reactive SPA architecture<br>• Zero-dependency lightweight framework<br>• 60FPS Ambient particle animations |
+| **⚙️ Backend** | **Python**, **FastAPI** | • **Uvicorn** (ASGI Server)<br>• **Pydantic** (Data Validation)<br>• **CORSMiddleware** | • High-performance asynchronous API<br>• Streaming audio responses<br>• Robust error handling pipeline |
+| **🧠 NLP Core** | **Generative AI** | • **Google Gemini 1.5 Flash**<br>• **Prompt Engineering** | • Context-aware Chat Companion<br>• Goal S.M.A.R.T. Planning<br>• Wisdom Riddle Generation |
+| **🗣️ Speech Engine** | **Transformers**, **PyTorch** | • **Microsoft SpeechT5** (TTS)<br>• **HiFi-GAN** (Vocoder)<br>• **OpenAI Whisper** (STT) | • Neural Text-to-Speech synthesis<br>• High-fidelity waveform generation<br>• Real-time voice transcription |
+| **🎵 Audio Synthesis** | **Latent Diffusion** | • **Facebook MusicGen Small**<br>• **FFmpeg**<br>• **PyDub** | • **"Echo Cave"**: Text-to-Audio ambient generation<br>• Waveform processing & normalization |
+| **🌍 Data & Geo** | **External APIs** | • **OpenStreetMap (Overpass)**<br>• **Geolocation API** | • "Safe Zone" Locator (Libraries, Parks)<br>• Privacy-first browser-based location tracking |
+
+---
+
+## 🧠 System Workflow
+
+The application relies on a sophisticated pipeline handling separate threads for textual logic and heavy tensor computations for audio generation.
 
 ```mermaid
 graph TD
-    subgraph "Frontend Experience (Glass UI)"
-        UI[User Interface] -->|Audio/Text| GW[API Gateway]
-        GEO[Geolocation API] --> GW
+    subgraph "Client Side (Ethereal UI)"
+    A[User Interface] -->|JSON Request| B[JS Controller]
+    B -->|Async Fetch| C[FastAPI Gateway]
     end
 
-    subgraph "Backend Orchestration (FastAPI)"
-        GW -->|Text Prompt| LLM[Google Gemini 1.5]
-        GW -->|Audio Stream| STT[OpenAI Whisper]
-        GW -->|Generation Req| AUD[MusicGen Small]
-        GW -->|Synthesis Req| TTS[SpeechT5 + HiFiGan]
+    subgraph "Server Side (Inference Engine)"
+    C -->|Route: /chat| D[Gemini 1.5 Flash]
+    C -->|Route: /generate-soundscape| E[MusicGen Transformer]
+    C -->|Route: /text-to-speech| F[SpeechT5 + HiFi-GAN]
+    C -->|Route: /safe-zones| G[Overpass API]
     end
 
-    subgraph "External Intelligence"
-        LLM -->|Contextual Chat| RESP[Response]
-        LLM -->|Poetry/Goals| GEN[Content]
-        GW -->|Coordinates| OSM[Overpass API / OSM]
+    subgraph "Response Pipeline"
+    D -->|Text Stream| C
+    E -->|WAV Blob| C
+    F -->|Audio Stream| C
+    G -->|JSON Data| C
     end
 
-    AUD -->|WAV Stream| UI
-    TTS -->|WAV Stream| UI
-    RESP -->|JSON| UI
+    C -->|Response| A
 ```
 
-### 🚀 Key Technical Pillars
+---
 
-#### 1. Generative Audio Synthesis (MusicGen)
-We don't play pre-recorded loops. Manas generates **bespoke ambient soundscapes** in real-time.
-*   **Model:** `facebook/musicgen-small`
-*   **Pipeline:** User Keyword $\rightarrow$ LLM Prompt Expansion $\rightarrow$ Transformer Audio Generation $\rightarrow$ FFMPEG Processing $\rightarrow$ Binary Stream.
+## 🚀 Key Features
 
-#### 2. Neural Speech Ecosystem
-A bidirectional speech pipeline enabling seamless voice interaction.
-*   **STT (Ear):** `openai/whisper-base` for robust automatic speech recognition.
-*   **TTS (Voice):** `microsoft/speecht5_tts` coupled with **HiFiGan** vocoders and CMU Arctic X-Vector embeddings for lifelike vocal synthesis.
+### 1. The Echo Cave (Generative Audio)
+Utilizing **Facebook's MusicGen**, Manas generates unique, never-before-heard ambient soundscapes based on user emotion.
+*   *Tech:* AutoProcessor -> MusicGenForConditionalGeneration -> 32kHz Sampling.
 
-#### 3. Cognitive Reasoning Engine
-Powered by **Google Gemini 1.5 Flash**, the backend handles complex reasoning tasks:
-*   **Contextual Chat:** Maintains conversation history for coherent therapy-lite sessions.
-*   **Algorithmic Goal Coaching:** Converts abstract user desires into S.M.A.R.T. actionable JSON plans.
-*   **Dynamic Meditation Scripts:** Generates session scripts based on user-selected duration and stress levels.
+### 2. Neural Voice Interface
+A complete vocal loop allowing users to speak and hear responses.
+*   **Input:** OpenAI Whisper Base (Automatic Speech Recognition).
+*   **Output:** Microsoft SpeechT5 (Text-to-Speech) using CMU Arctic X-Vectors for speaker embedding.
 
-#### 4. Geospatial Safety Locator
-Integrates with the **Overpass API** to perform real-time radius queries on OpenStreetMap data, triangulating user coordinates to locate "Safe Zones" (Libraries, Parks, Cafes) within a 2000m radius.
+### 3. Cognitive AI Coach
+Powered by **Google Gemini**, the backend maintains conversation history to provide context-aware CBT (Cognitive Behavioral Therapy) inspired support, S.M.A.R.T. goal planning, and poetic generation.
+
+### 4. Digital Detox & Mindfulness
+Includes a custom-built timer engine for:
+*   **Breathing Exercises:** Visual 4-7-8 and Box Breathing guides.
+*   **Detox Pledges:** AI-generated commitment contracts.
 
 ---
 
-## 🎨 Frontend Engineering: The "Ethereal" UX
-
-The interface is built with vanilla **ES6+ JavaScript** for maximum performance, avoiding framework bloat.
-
-*   **Glassmorphism Engine:** CSS3 backdrop filters (`blur(12px)`) combined with semi-transparent RGBA layers.
-*   **Parallax Aurora Effects:** GPU-accelerated CSS animations (`transform: translate3d`) track mouse movement to create depth.
-*   **Gamification Logic:** Local state management handles XP tracking, leveling systems, and feature unlocking without database latency.
-
----
-
-## 🛠️ Installation & Deployment
+## 🛠️ Installation & Setup
 
 ### Prerequisites
-*   **Python 3.10+** (Required for Torch/Transformers)
-*   **FFMPEG** (Critical for audio processing - `pydub` dependency)
-*   **CUDA-capable GPU** (Recommended for MusicGen/Whisper inference)
+*   Python 3.10+
+*   FFmpeg (Installed and added to System PATH)
+*   A Google Gemini API Key
 
-### 1. Clone & Environment
+### 1. Clone the Repository
 ```bash
 git clone https://huggingface.co/spaces/SALMA003/Manas_AI_Wellness
 cd Manas_AI_Wellness
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate
 ```
 
 ### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
-# Ensure torch is installed with CUDA support if available
 ```
+*Note: This will install heavy libraries including `torch`, `transformers`, and `fastapi`.*
 
-### 3. Environment Configuration
+### 3. Configure Environment
 Create a `.env` file in the root directory:
 ```env
 GEMINI_API_KEY=your_google_api_key_here
-HF_TOKEN=your_huggingface_token_here
 ```
 
-### 4. Launch the Neural Backend
+### 4. Run the Server
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 7860
+uvicorn main:app --reload --host 0.0.0.0 --port 7860
 ```
 
----
-
-## 📡 API Documentation
-
-| Endpoint | Method | Payload | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/chat` | `POST` | `{"history": []}` | Context-aware LLM conversation |
-| `/api/generate-soundscape` | `POST` | `{"word": "forest"}` | Generates 5s audio clip via MusicGen |
-| `/api/transcribe` | `POST` | `FormData(file)` | Converts user audio to text via Whisper |
-| `/api/safe-zones` | `POST` | `{"lat": x, "lon": y}` | OSM query for nearby safe spaces |
-| `/api/coach-goal` | `POST` | `{"goal": "..."}` | Generates structured action plans |
-
----
-
-## 💻 Code Highlight: Audio Generation Pipeline
-
-Manas doesn't just call an API; it runs the diffusion processing locally (or on the hosted GPU instance).
-
-```python
-# main.py
-@app.post("/api/generate-soundscape")
-async def generate_soundscape(request: SoundscapeRequest):
-    # 1. LLM Expands the user's simple word into a descriptive acoustic prompt
-    prompt_response = gemini_model.generate_content(
-        f"Describe a soothing soundscape for '{request.word}'. Focus on instruments/texture."
-    )
-    
-    # 2. Tokenize and feed to MusicGen
-    inputs = audio_gen_processor(
-        text=[prompt_response.text], 
-        padding=True, 
-        return_tensors="pt"
-    ).to(device)
-    
-    # 3. Generate Audio Tensor
-    audio_values = audio_gen_model.generate(**inputs, max_new_tokens=768)
-    
-    # 4. Stream binary WAV back to client
-    buffer = io.BytesIO()
-    sf.write(buffer, audio_values.cpu().numpy().squeeze(), samplerate=32000, format='WAV')
-    return StreamingResponse(buffer, media_type="audio/wav")
-```
+### 5. Access the App
+Open your browser and navigate to:
+`http://localhost:7860`
 
 ---
 
 ## 🔮 Future Roadmap
 
-*   **Biometric Integration:** WebCam-based rPPG (Remote Photoplethysmography) to detect heart rate variability.
-*   **Sentiment Voice Analysis:** Analyzing user vocal tonality to auto-adjust app themes and suggestions.
-*   **VR/XR Port:** Porting the Aurora background to a WebXR environment for immersive meditation.
+*   [ ] **RAG Integration:** Vector database implementation to store long-term user therapy sessions.
+*   [ ] **Emotion Detection:** Computer Vision (OpenCV) integration to detect user facial expressions for auto-mood logging.
+*   [ ] **Biometric Sync:** Integration with wearable API data (Apple Health/Google Fit).
 
 ---
 
 <div align="center">
-
-**Built with 💜 by SALMA003**
-<br>
-*Merging Silicon & Spirit*
-
+  <sub>Designed & Engineered by SALMA003</sub><br>
+  <sub>Powered by Open Source AI</sub>
 </div>
