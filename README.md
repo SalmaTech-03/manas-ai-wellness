@@ -21,7 +21,7 @@ Here is the complete breakdown of the technologies powering the Manas Ecosystem.
 | :--- | :--- | :--- | :--- |
 | **🖥️ Frontend** | **Vanilla JS (ES6+)**, **CSS3**, **HTML5** | • **Glassmorphism UI**<br>• **Parallax Engine**<br>• **CSS Variables** | • Reactive SPA architecture<br>• Zero-dependency lightweight framework<br>• 60FPS Ambient particle animations |
 | **⚙️ Backend** | **Python**, **FastAPI** | • **Uvicorn** (ASGI Server)<br>• **Pydantic** (Data Validation)<br>• **CORSMiddleware** | • High-performance asynchronous API<br>• Streaming audio responses<br>• Robust error handling pipeline |
-| **🧠 NLP Core** | **Generative AI** | • **Google Gemini 1.5 Flash**<br>• **Prompt Engineering** | • Context-aware Chat Companion<br>• Goal S.M.A.R.T. Planning<br>• Wisdom Riddle Generation |
+| **🧠 NLP Core** | **Generative AI** | • **Google Gemini 2.5 Flash**<br>• **Prompt Engineering** | • Context-aware Chat Companion<br>• Goal S.M.A.R.T. Planning<br>• Wisdom Riddle Generation |
 | **🗣️ Speech Engine** | **Transformers**, **PyTorch** | • **Microsoft SpeechT5** (TTS)<br>• **HiFi-GAN** (Vocoder)<br>• **OpenAI Whisper** (STT) | • Neural Text-to-Speech synthesis<br>• High-fidelity waveform generation<br>• Real-time voice transcription |
 | **🎵 Audio Synthesis** | **Latent Diffusion** | • **Facebook MusicGen Small**<br>• **FFmpeg**<br>• **PyDub** | • **"Echo Cave"**: Text-to-Audio ambient generation<br>• Waveform processing & normalization |
 | **🌍 Data & Geo** | **External APIs** | • **OpenStreetMap (Overpass)**<br>• **Geolocation API** | • "Safe Zone" Locator (Libraries, Parks)<br>• Privacy-first browser-based location tracking |
