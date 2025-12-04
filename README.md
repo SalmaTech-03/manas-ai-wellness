@@ -12,7 +12,6 @@
 
 **Manas AI** is not just a wellness app; it is a **Multimodal Neural Ecosystem**. It fuses state-of-the-art Generative AI, Audio Synthesis Transformers, and Geospatial APIs into a unified, glassmorphic interface designed to recalibrate user mental states through bio-digital intervention.
 
-[View Demo](https://huggingface.co/spaces/SALMA003/Manas_AI_Wellness) | [Report Bug](https://huggingface.co/spaces/SALMA003/Manas_AI_Wellness/discussions)
 
 </div>
 
